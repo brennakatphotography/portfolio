@@ -1,6 +1,7 @@
 const babelify = require('babelify');
 const browserify = require('browserify');
 const browserSync = require('browser-sync').create();
+const del = require('del');
 const exec = require('child_process').exec;
 const gulp = require('gulp');
 const gulpBabel = require('gulp-babel');
@@ -13,19 +14,22 @@ const { babelifyConfig, browserifyConfig, browserSyncConfig } = require('./confi
 const { buildOnly, errorReporter, getArg, logIf } = require('./utils');
 const subProcess = require('./process');
 
+const SERVER_PORT = 8080;
+const SIM_PORT = 3000;
+
 const SIM_DIR = getArg('simulator');
-const server = subProcess({ cwd: '.', port: 8080, cmd: 'node', args: ['server/build/server.js'] });
-const simulator = subProcess({ cwd: SIM_DIR, port: 3000, cmd: 'rackup', args: ['-p', '3000'] });
+const server = subProcess({ cwd: '.', port: SERVER_PORT, cmd: 'node', args: ['ui-server/server/build/server.js'] });
+const simulator = subProcess({ cwd: SIM_DIR, port: SIM_PORT, cmd: 'rackup', args: ['-p', SIM_PORT] });
 
 const browserInit = () => {
   if (SIM_DIR) {
-    return [['transpile', 'server:watch', 'simulator:watch'], browserSyncInit];
+    return [['transpile', 'server:run', 'simulator:watch'], browserSyncInit];
   }
-  return [['transpile', 'server:watch'], browserSyncInit];
+  return [['transpile', 'server:run'], browserSyncInit];
 };
 
 const browserSyncInit = () => {
-  exec('open http://localhost:8080');
+  exec(`open http://localhost:${SERVER_PORT}`);
   browserSync.init(browserSyncConfig)
 };
 
@@ -39,15 +43,15 @@ const jsTranspileClient = (config = {}) => () => {
     .pipe(gulp.dest('client/build/js'));
 };
 
-const jsTranspileServer = (config = {}) => () => {
-  return gulp.src('server/src/**/*.js')
-    .pipe(gulpBabel(babelifyConfig)
-      .on('error', errorReporter(config)))
-    .pipe(gulp.dest('server/build'))
+const sassTranspile = (config = {}) => () => {
+  return gulp.src('client/src/scss/main.scss')
+    .pipe(sass().on('error', errorReporter(config)))
+    .pipe(buildOnly(config.build, minifyCSS))
+    .pipe(gulp.dest('client/build/css'));
 };
 
 const refreshBrowser = () => {
-  return gulp.watch(['client/src/**/*.*', 'server/src/**/*.*'], [browserSync.reload]);
+  return gulp.watch(['server/src/**/*.*'], [browserSync.reload]);
 };
 
 const run = ({ cb, name, port, proc }) => done => {
@@ -61,41 +65,30 @@ const run = ({ cb, name, port, proc }) => done => {
     .on('error', console.error);
 };
 
-const runServer = run({ name: 'SERVER', port: 8080, proc: server });
+const runServer = run({ name: 'SERVER', port: SERVER_PORT, proc: server });
 
-const runSimulator = run({ name: 'SIMULATOR', port: 3000, proc: simulator, cb: process.abort });
-
-const watchServer = () => {
-  return gulp.watch('server/**/*.js', ['server:run', browserSync.reload]);
-};
+const runSimulator = run({ name: 'SIMULATOR', port: SIM_PORT, proc: simulator, cb: process.abort });
 
 const watchSimulator = () => {
   return gulp.watch(`${SIM_DIR}/**/*.*`, ['simulator:run', browserSync.reload]);
 };
 
-const sassTranspile = (config = {}) => () => {
-  return gulp.src('client/src/scss/main.scss')
-    .pipe(sass().on('error', errorReporter(config)))
-    .pipe(buildOnly(config.build, minifyCSS))
-    .pipe(gulp.dest('client/build/css'));
-};
-
 module.exports = {
-  'build': [['js:buildClient', 'js:buildServer', 'sass:build']],
   'browser:init': browserInit(),
+  'build': [['clean'], () => gulp.start(['js:buildClient', 'sass:build'])],
+  'clean': [['js:clean', 'css:clean']],
+  'css:clean': [() => del('client/build/css')],
+  'dev': [['server'], () => gulp.start(['js:watchClient', 'sass:watch'])],
+  'js:clean': [() => del('client/build/js')],
   'js:buildClient': [jsTranspileClient({ build: true })],
-  'js:buildServer': [jsTranspileServer({ build: true })],
   'js:transpileClient': [jsTranspileClient()],
-  'js:transpileServer': [jsTranspileServer()],
   'js:watchClient': [() => gulp.watch('client/src/js/**/*.js', ['js:transpileClient'])],
-  'js:watchServer': [() => gulp.watch('server/src/**/*.js', ['js:transpileServer'])],
   'sass:build': [sassTranspile({ build: true })],
   'sass:transpile': [sassTranspile()],
   'sass:watch': [() => gulp.watch('client/src/scss/**/*.scss', ['sass:transpile'])],
-  'server': [['browser:init', 'js:watchClient', 'js:watchServer', 'sass:watch'], refreshBrowser],
-  'server:run': [['js:transpileServer'], runServer],
-  'server:watch': [['server:run'], watchServer],
+  'server': [['browser:init'], refreshBrowser],
+  'server:run': [runServer],
   'simulator:run': SIM_DIR && [runSimulator],
   'simulator:watch': SIM_DIR && [['simulator:run'], watchSimulator],
-  'transpile': [['js:transpileClient', 'js:transpileServer', 'sass:transpile', 'js:watchClient', 'js:watchServer', 'sass:watch']]
+  'transpile': [['js:transpileClient','sass:transpile', 'js:watchClient', 'sass:watch']]
 };

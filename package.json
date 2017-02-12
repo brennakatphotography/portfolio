@@ -10,13 +10,8 @@
     "babel-preset-react": "^6.3.13",
     "babel-preset-stage-1": "^6.5.0",
     "babelify": "^7.3.0",
-    "body-parser": "^1.15.2",
-    "browser-sync": "^2.17.5",
-    "colors": "^1.1.2",
-    "cookie-parser": "^1.4.3",
-    "dotenv": "^4.0.0",
+    "del": "^2.2.2",
     "eslint": "<2.3.0",
-    "express": "^4.14.0",
     "fun-util": "^0.12.0",
     "gulp": "^3.9.1",
     "gulp-babel": "^6.1.2",
@@ -26,8 +21,6 @@
     "gulp-streamify": "^1.0.2",
     "gulp-uglify": "^2.0.0",
     "gulp-util": "^3.0.7",
-    "jade": "^1.11.0",
-    "path": "^0.12.7",
     "react": "^0.14.7",
     "react-addons-css-transition-group": "^0.14.7",
     "react-dom": "^0.14.7",
@@ -37,10 +30,14 @@
     "redux": "^3.2.1",
     "vinyl-source-stream": "^1.1.0"
   },
+  "devDependencies": {
+    "browser-sync": "^2.17.5"
+  },
   "scripts": {
-    "start": "node node_modules/gulp/bin/gulp.js build && node server/build/server.js",
-    "dev": "node node_modules/gulp/bin/gulp.js server",
-    "dev:simulator": "node node_modules/gulp/bin/gulp.js server --simulator=../simulator"
+    "build": "./buildpack-run.sh && node_modules/gulp/bin/gulp.js build",
+    "dev": "npm run build && node_modules/gulp/bin/gulp.js dev",
+    "dev:simulator": "npm run build && node_modules/gulp/bin/gulp.js dev --simulator=../simulator",
+    "start": "node_modules/gulp/bin/gulp.js build && node ui-server/server/build/server.js"
   },
   "license": "ISC"
 }

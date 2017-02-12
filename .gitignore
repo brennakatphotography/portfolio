@@ -3,7 +3,7 @@
 node_modules/
 client/build/css/
 client/build/js/
-server/build/
+ui-server/
 .sass-cache/
 .idea/
 *.log*

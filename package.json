@@ -34,10 +34,7 @@
     "browser-sync": "^2.17.5"
   },
   "scripts": {
-    "build": "./buildpack-run.sh && node_modules/gulp/bin/gulp.js build",
-    "dev": "npm run build && node_modules/gulp/bin/gulp.js dev",
-    "dev:simulator": "npm run build && node_modules/gulp/bin/gulp.js dev --simulator=../simulator",
-    "start": "node_modules/gulp/bin/gulp.js build && node ui-server/server/build/server.js"
+    "start": "node_modules/gulp/bin/gulp.js build && bin/serve.sh client/build"
   },
   "license": "ISC"
 }

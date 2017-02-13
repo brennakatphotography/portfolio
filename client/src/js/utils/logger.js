@@ -1,9 +1,7 @@
 import { partial } from 'fun-util';
 
 const logger = (level, ...messages) => {
-  if (window.getEnv().ENV !== 'production') {
-    console[level](...messages);
-  }
+  console[level](...messages);
 };
 
 export default {
